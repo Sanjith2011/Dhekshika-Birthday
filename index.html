@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Birthday Surprise</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"/>
+</head>
+
+<body>
+
+<!-- CONFETTI -->
+<div id="confetti-container"></div>
+
+<!-- Stars -->
+<div class="stars"></div>
+<div class="stars2"></div>
+<div class="stars3"></div>
+
+<!-- Countdown -->
+<div id="countdown-wrapper">
+  <div id="countdown">3</div>
+</div>
+
+<!-- Layout -->
+<div class="layout">
+
+    <!-- ⭐ INSTRUCTIONS (now mid-left) -->
+    <div id="cake-instruction">
+        <div class="inst">Click the cake to light the candle</div>
+        <div class="inst">Blow into the microphone for the surprise</div>
+    </div>
+
+    <!-- Birthday Message -->
+    <div class="left-message" id="message-box">
+      <p class="line">Happy Birthday Dhekshika 🙂</p>
+      <p class="line">May today feel like a warm hug, a soft smile,</p>
+      <p class="line">and a reminder that you deserve every good thing in life</p>
+    </div>
+
+    <div class="right-side">
+      <div class="cake-container">
+        <img id="cake" src="./mnt/data/A_digital_photograph_showcases_a_three-tiered,_rou.png" class="cake">
+        <img id="flame" src="./mnt/data/A_minimalist,_digital_illustration_features_a_sing.png" class="flame">
+      </div>
+    </div>
+
+</div>
+
+<!-- Music -->
+<audio id="bg-music" src="love_story.mp3" loop></audio>
+
+<script>
+/* ----------------------------
+   TYPEWRITER EFFECT
+----------------------------- */
+const lines = document.querySelectorAll(".line");
+let lineIndex = 0;
+
+function showNextLine(){
+  if(lineIndex < lines.length){
+    lines[lineIndex].classList.add("show");
+    lineIndex++;
+    setTimeout(showNextLine, 600);
+  }
+}
+
+/* ----------------------------
+   INSTRUCTIONS
+----------------------------- */
+const cakeInstruction = document.getElementById("cake-instruction");
+
+function showInstructions(){
+  cakeInstruction.classList.add("show");
+}
+
+function hideInstructions(){
+  cakeInstruction.classList.remove("show");
+  cakeInstruction.classList.add("hide");
+}
+
+/* ----------------------------
+   CONFETTI
+----------------------------- */
+const confettiContainer = document.getElementById("confetti-container");
+const confettiCount = 120;
+
+function startConfetti(){
+  for(let i=0;i<confettiCount;i++){
+    const c = document.createElement("div");
+    c.classList.add("confetti");
+
+    const hue = Math.floor(Math.random()*360);
+    c.style.backgroundColor = `hsl(${hue}, 80%, 60%)`;
+
+    c.style.left = Math.random()*100 + "vw";
+    c.style.top = Math.random()*100 + "vh";
+
+    const x = (Math.random()-0.5)*800;
+    const y = (Math.random()-0.5)*800;
+    const rot = Math.random()*720;
+
+    c.style.setProperty("--x",`${x}px`);
+    c.style.setProperty("--y",`${y}px`);
+    c.style.setProperty("--r",`${rot}deg`);
+
+    confettiContainer.appendChild(c);
+    setTimeout(()=>c.remove(),5000);
+  }
+}
+
+/* ----------------------------
+   COUNTDOWN
+----------------------------- */
+const countdown = document.getElementById("countdown");
+const countdownWrapper = document.getElementById("countdown-wrapper");
+
+function startCountdown(callback){
+  let count = 3;
+
+  countdown.textContent = count;
+  countdownWrapper.style.display = "flex";
+  countdown.classList.add("pop");
+
+  const interval = setInterval(()=>{
+    count--;
+
+    if(count > 0){
+      countdown.textContent = count;
+      countdown.classList.remove("pop");
+      void countdown.offsetWidth;
+      countdown.classList.add("pop");
+    } else {
+      clearInterval(interval);
+      countdownWrapper.style.display = "none";
+      callback();
+    }
+  },1000);
+}
+
+/* ----------------------------
+   START SEQUENCE
+----------------------------- */
+const layout = document.querySelector(".layout");
+const music = document.getElementById("bg-music");
+
+function startSequence(){
+  layout.style.opacity = "1";
+  music.volume = .4;
+  music.currentTime = 30;
+  music.play().catch(()=>{});
+
+  showInstructions(); // ⭐ instructions appear at start
+}
+
+/* ----------------------------
+   CAKE + MICROPHONE
+----------------------------- */
+const cake = document.getElementById("cake");
+const flame = document.getElementById("flame");
+const messageBox = document.getElementById("message-box");
+
+let flameLit = false;
+
+cake.addEventListener("click", ()=>{
+
+  flame.style.opacity = 1;
+  flameLit = true;
+
+  hideInstructions();  // ⭐ both disappear
+
+  startMic();
+});
+
+function startMic(){
+  navigator.mediaDevices.getUserMedia({audio:true})
+    .then(stream=>{
+      const ctx = new AudioContext();
+      const mic = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+
+      analyser.fftSize = 2048;
+      mic.connect(analyser);
+
+      const data = new Uint8Array(analyser.frequencyBinCount);
+
+      function detect(){
+        analyser.getByteFrequencyData(data);
+
+        const volume = Math.max(...data);
+
+        // ⭐ less sensitive now (needs stronger blow)
+        if(volume > 60 && flameLit){
+          putOutCandle();
+        }
+        requestAnimationFrame(detect);
+      }
+      detect();
+    });
+}
+
+function putOutCandle(){
+  flameLit = false;
+  flame.style.opacity = 0;
+
+  startConfetti();
+
+  messageBox.style.opacity = "1";
+  showNextLine();
+}
+
+/* INIT */
+window.addEventListener("load",()=>{
+  startCountdown(startSequence);
+});
+</script>
+
+</body>
+</html>
